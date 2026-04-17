@@ -18,6 +18,16 @@ Run a single test file:
 npx jest test/aws-cicd-tutorial.test.ts
 ```
 
+## Git Hooks
+
+A pre-commit hook lives in `hooks/pre-commit`. It auto-increments the minor version in `.env` (e.g. `1.0` → `1.1`) and stages the file on every commit.
+
+Install it after cloning:
+```bash
+cp hooks/pre-commit .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit
+```
+
 ## Project Purpose
 
 This is a **demonstration project** for testing GitHub Actions workflows. The code is not production-facing and exists solely to provide a working CDK app to run CI/CD pipelines against. Prioritize clarity and simplicity over production concerns like cost optimization, security hardening, or operational robustness.

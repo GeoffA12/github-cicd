@@ -1,0 +1,17 @@
+#!/bin/bash
+
+ENV_FILE=".env"
+
+current_version=$(grep -oP 'VERSION="\K[^"]+' "$ENV_FILE")
+
+major=$(echo "$current_version" | cut -d'.' -f1)
+minor=$(echo "$current_version" | cut -d'.' -f2)
+
+new_minor=$((minor + 1))
+new_version="${major}.${new_minor}"
+
+sed -i "" "s/VERSION=\"${current_version}\"/VERSION=\"${new_version}\"/" "$ENV_FILE"
+
+echo "Version bumped: ${current_version} -> ${new_version}"
+
+git add "$ENV_FILE"

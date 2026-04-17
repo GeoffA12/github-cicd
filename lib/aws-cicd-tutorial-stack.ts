@@ -1,6 +1,9 @@
 import * as cdk from 'aws-cdk-lib/core';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { Construct } from 'constructs';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
 
 export class AwsCicdTutorialStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -10,6 +13,9 @@ export class AwsCicdTutorialStack extends cdk.Stack {
       runtime: lambda.Runtime.PYTHON_3_13,
       handler: 'main.handler',
       code: lambda.Code.fromAsset('lambda'),
+      environment: {
+        VERSION: process.env.VERSION ?? '',
+      },
     });
 
     const fnUrl = fn.addFunctionUrl({
