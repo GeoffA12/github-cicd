@@ -2,7 +2,7 @@
 
 ENV_FILE=".env"
 
-current_version=$(grep -oP 'VERSION="\K[^"]+' "$ENV_FILE")
+current_version=$(sed -n 's/VERSION="\(.*\)"/\1/p' "$ENV_FILE")
 
 major=$(echo "$current_version" | cut -d'.' -f1)
 minor=$(echo "$current_version" | cut -d'.' -f2)
