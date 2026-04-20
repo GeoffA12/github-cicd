@@ -4,7 +4,7 @@ import os
 
 def handler(event, context):
     response_body = {
-        "message": "Hello World",
+        "message": "Hello World!!",
         "version": os.environ.get("VERSION")
     }
     return {
