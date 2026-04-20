@@ -18,7 +18,15 @@ jobs:
               with:
                 node-version: 18
             
+            - name: Cache Node.js dependencies
+              id: cache
+              uses: actions/cache@v2
+              with:
+                path: ./node_modules
+                key: ${{ runner.os }}-node-${{ hashFiles('./package-lock.json') }}
+
             - name: Install CDK dependencies
+              if: steps.cache.outputs.cache-hit != 'true'
               working-directory: ./
               run: npm ci
 
