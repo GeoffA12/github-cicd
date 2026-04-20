@@ -5,11 +5,20 @@ on:
         branches:
             - main
 
+permissions:
+    id-token: write
+
 jobs:
     deploy:
         runs-on: ubuntu-latest
 
         steps:
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v6.1.0
+              with:
+                role-to-assume: arn:aws:iam::645944055286:role/GitHubCICDActionsRole
+                aws-region: us-east-1
+
             - name: Checkout code
               uses: actions/checkout@v2
 
@@ -33,7 +42,3 @@ jobs:
             - name: Deploy CDK stack
               working-directory: ./
               run: npx cdk deploy --require-approval never
-              env:
-                AWS_ACCESS_KEY_ID: ${{ secrets.PERSONAL_AWS_ACCESS_KEY_ID }}
-                AWS_SECRET_ACCESS_KEY: ${{ secrets.PERSONAL_SECRET_ACCESS_KEY }}
-                AWS_REGION: "us-east-1"
