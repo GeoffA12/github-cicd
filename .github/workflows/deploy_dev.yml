@@ -39,6 +39,12 @@ jobs:
               working-directory: ./
               run: npm ci
 
-            - name: Deploy CDK stack
+            # Deploy stacks in explicit order: ECR repository must exist before
+            # the docker-publish workflow runs and pushes an image to it.
+            - name: Deploy ECR stack
               working-directory: ./
-              run: npx cdk deploy --require-approval never
+              run: npx cdk deploy EcrStack --require-approval never
+
+            - name: Deploy app stack
+              working-directory: ./
+              run: npx cdk deploy AwsCicdTutorialStack --require-approval never

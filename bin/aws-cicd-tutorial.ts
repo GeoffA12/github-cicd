@@ -1,8 +1,15 @@
 #!/usr/bin/env node
 import * as cdk from 'aws-cdk-lib/core';
+import { EcrStack } from '../lib/ecr-stack';
 import { AwsCicdTutorialStack } from '../lib/aws-cicd-tutorial-stack';
 
 const app = new cdk.App();
+
+// EcrStack must be deployed before AwsCicdTutorialStack so the ECR repository
+// exists by the time the docker-publish workflow runs.
+// deploy_dev.yml deploys these two stacks explicitly in this order.
+new EcrStack(app, 'EcrStack', {});
+
 new AwsCicdTutorialStack(app, 'AwsCicdTutorialStack', {
   /* If you don't specify 'env', this stack will be environment-agnostic.
    * Account/Region-dependent features and context lookups will not work,

@@ -1,0 +1,98 @@
+name: Build and Push Docker Image to ECR
+
+on:
+    # Trigger automatically after the CDK deploy workflow succeeds on main.
+    # This guarantees the ECR repository exists before we try to push to it.
+    workflow_run:
+        workflows: ["Deploy to AWS (CDK)"]
+        types:
+            - completed
+        branches:
+            - main
+    # Allow manual runs from the Actions tab (e.g. to re-push without a code change).
+    workflow_dispatch:
+
+permissions:
+    id-token: write   # required for OIDC token exchange
+    contents: read
+
+env:
+    AWS_REGION: us-east-1
+    # CloudFormation stack name and output key where the ECR URI is published.
+    # These must match lib/ecr-stack.ts exactly.
+    ECR_STACK_NAME: EcrStack
+    ECR_OUTPUT_KEY: EcrRepositoryUri
+
+jobs:
+    build-and-push:
+        runs-on: ubuntu-latest
+
+        # For workflow_run events: only proceed if the upstream CDK deploy succeeded.
+        # For workflow_dispatch (manual): always run.
+        if: >-
+            github.event_name == 'workflow_dispatch' ||
+            github.event.workflow_run.conclusion == 'success'
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v5
+              with:
+                  # workflow_run events expose head_sha of the triggering run.
+                  # Falls back to github.sha for manual (workflow_dispatch) runs.
+                  ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+            - name: Configure AWS credentials (OIDC)
+              uses: aws-actions/configure-aws-credentials@v6.1.0
+              with:
+                  role-to-assume: arn:aws:iam::645944055286:role/GitHubCICDActionsRole
+                  aws-region: ${{ env.AWS_REGION }}
+
+            - name: Login to Amazon ECR
+              id: login-ecr
+              uses: aws-actions/amazon-ecr-login@v2
+
+            # Dynamically resolve the ECR repository URI from the CloudFormation
+            # output published by EcrStack. This avoids hardcoding account IDs,
+            # region strings, or repo names anywhere in this workflow file.
+            - name: Resolve ECR repository URI from CloudFormation
+              id: cfn
+              run: |
+                  ECR_URI=$(aws cloudformation describe-stacks \
+                    --stack-name "${{ env.ECR_STACK_NAME }}" \
+                    --query "Stacks[0].Outputs[?OutputKey=='${{ env.ECR_OUTPUT_KEY }}'].OutputValue" \
+                    --output text \
+                    --region "${{ env.AWS_REGION }}")
+
+                  if [ -z "$ECR_URI" ] || [ "$ECR_URI" = "None" ]; then
+                    echo "ERROR: Could not read output '${{ env.ECR_OUTPUT_KEY }}' from stack '${{ env.ECR_STACK_NAME }}'"
+                    echo "Make sure the ECR stack has been deployed at least once."
+                    exit 1
+                  fi
+
+                  echo "ecr-uri=$ECR_URI" >> "$GITHUB_OUTPUT"
+                  echo "Resolved ECR URI: $ECR_URI"
+
+            - name: Extract Docker metadata (tags & labels)
+              id: meta
+              uses: docker/metadata-action@v5
+              with:
+                  images: ${{ steps.cfn.outputs.ecr-uri }}
+                  tags: |
+                      # Full git SHA tag for traceability
+                      type=sha,format=long
+                      # "latest" tag — only applied on pushes to main
+                      type=raw,value=latest
+
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@v3
+
+            - name: Build and push image to ECR
+              uses: docker/build-push-action@v6
+              with:
+                  context: .
+                  push: true
+                  tags: ${{ steps.meta.outputs.tags }}
+                  labels: ${{ steps.meta.outputs.labels }}
+                  # Use ECR as a layer cache to speed up subsequent builds
+                  cache-from: type=registry,ref=${{ steps.cfn.outputs.ecr-uri }}:cache
+                  cache-to: type=registry,ref=${{ steps.cfn.outputs.ecr-uri }}:cache,mode=max
