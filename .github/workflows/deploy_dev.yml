@@ -20,16 +20,16 @@ jobs:
                 aws-region: us-east-1
 
             - name: Checkout code
-              uses: actions/checkout@v2
+              uses: actions/checkout@v5
 
             - name: Set up Node.js
-              uses: actions/setup-node@v2
+              uses: actions/setup-node@v6
               with:
-                node-version: 18
+                node-version: 24
             
             - name: Cache Node.js dependencies
               id: cache
-              uses: actions/cache@v3
+              uses: actions/cache@v5
               with:
                 path: ./node_modules
                 key: ${{ runner.os }}-node-${{ hashFiles('./package-lock.json') }}
