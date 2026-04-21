@@ -1,13 +1,16 @@
 #!/usr/bin/env node
 import * as cdk from 'aws-cdk-lib/core';
-import { EcrStack } from '../lib/ecr-stack';
-import { AwsCicdTutorialStack } from '../lib/aws-cicd-tutorial-stack';
+import { EcrStack } from '../lib/stacks/ecr-stack';
+import { AwsCicdTutorialStack } from '../lib/stacks/aws-cicd-tutorial-stack';
+import { AuthStack } from '../lib/stacks/auth-stack';
 
 const app = new cdk.App();
 
 // EcrStack must be deployed before AwsCicdTutorialStack so the ECR repository
 // exists by the time the docker-publish workflow runs.
 // deploy_dev.yml deploys these two stacks explicitly in this order.
+new AuthStack(app, 'AuthStack', {});
+
 new EcrStack(app, 'EcrStack', {});
 
 new AwsCicdTutorialStack(app, 'AwsCicdTutorialStack', {

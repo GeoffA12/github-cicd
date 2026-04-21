@@ -1,6 +1,7 @@
 import * as cdk from 'aws-cdk-lib/core';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
 import * as dotenv from 'dotenv';
 
@@ -23,6 +24,11 @@ export class AwsCicdTutorialStack extends cdk.Stack {
         VERSION: process.env.VERSION ?? '',
         TABLE_NAME: table.tableName,
       },
+    });
+
+    const provider = new iam.OpenIdConnectProvider(this, 'GitHubActionsProvider', {
+      url: 'https://token.actions.githubusercontent.com',
+      clientIds: ['sts.amazonaws.com'],
     });
 
     table.grantReadWriteData(fn);
